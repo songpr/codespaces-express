@@ -22,7 +22,7 @@ function mergeObjects(targets, sources, keys, operations) {
     const key = keysGenerator(source)
     if (sourcesMapByKeys.has(key)) {
       //map earlier source with the same key to the latest source sorted by index of array
-      sourcesMapByKeys.set(key, Object.assign(sourcesMapByKeys.get(key),source))
+      sourcesMapByKeys.set(key, Object.assign(sourcesMapByKeys.get(key), source))
       continue
     }
     sourcesMapByKeys.set(key, source)
