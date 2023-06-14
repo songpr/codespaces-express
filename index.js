@@ -8,28 +8,28 @@
  * @param {*} operations 
  */
 function mergeObjects(targets, sources, keys, operations) {
-  if(!Array.isArray(targets)||targets.length < 1||typeof(targets[0])!=="object")throw Error("target objects must be array of objects")
-  if(!Array.isArray(sources)||sources.length < 1||typeof(sources[0])!=="object")throw Error("sources objects must be array of objects")
-  if(!Array.isArray(keys)||keys.length < 1||typeof(keys[0])!=="string")throw Error("keys must be array of object property name (String)")
+  if (!Array.isArray(targets) || targets.length < 1 || typeof (targets[0]) !== "object") throw Error("target objects must be array of objects")
+  if (!Array.isArray(sources) || sources.length < 1 || typeof (sources[0]) !== "object") throw Error("sources objects must be array of objects")
+  if (!Array.isArray(keys) || keys.length < 1 || typeof (keys[0]) !== "string") throw Error("keys must be array of object property name (String)")
   const keysGenerator = (object) => {
     const freezedKeys = Object.freeze(keys)
     const keysString = Object.keys(object).filter(key => freezedKeys.includes(key))
       .map((filterKey) => JSON.stringify(object[filterKey])).join(",")
     return keysString
   }
-  const sourcesMapByKeys = new WeakMap()
-  for( const source of sources){
+  const sourcesMapByKeys = new Map()
+  for (const source of sources) {
     const key = keysGenerator(source)
-    if(sourcesMapByKeys.has(key)){
+    if (sourcesMapByKeys.has(key)) {
       //map earlier source with the same key to the latest source sorted by index of array
-      sourcesMapByKeys(key,Object.assign(source,sourcesMapByKeys.get(key)))
+      sourcesMapByKeys.set(key, Object.assign(sourcesMapByKeys.get(key),source))
       continue
     }
-    sourcesMapByKeys.set(key,source)
+    sourcesMapByKeys.set(key, source)
   }
-  return targets.map(target=>{
+  return targets.map(target => {
     const key = keysGenerator(target)
-    return Object.assign(target,sourcesMapByKeys.get(key))
+    return Object.assign(target, sourcesMapByKeys.get(key))
   })
 }
 
