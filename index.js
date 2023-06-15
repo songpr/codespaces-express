@@ -1,47 +1,109 @@
 function validationForBasicOperations(target, source) {
   if (source === undefined) return target
 }
-const basicOperations = {
-  sum: (target, source) => {
-    return (target == null ? 0 : target) + (source == null ? 0 : source)
-  },
-  max: (target, source) => {
-    if (source === undefined) return target
-    if (target === undefined) return source
-    return source > target ? source : target
-  },
-  min: (target, source) => {
-    if (source === undefined) return target
-    if (target === undefined) return source
-    return source < target ? source : target
-  },
-  preserve: (target, source) => {
-    if (source === undefined) return target
-    if (target === undefined) return source
-    if (Array.isArray(target) && Array.isArray(source)) {
-      return [...target, ...source]
-    } else if (Array.isArray(target)) {
-      return [...target, source]
-    } else if (Array.isArray(source)) {
-      return [target, ...source]
+const basicOperationsGenerator = {
+  sum: () => {
+    return (target, source) => {
+      return (target == null ? 0 : target) + (source == null ? 0 : source)
     }
-    return [target, source]
+  },
+  max: () => {
+    return (target, source) => {
+      if (source === undefined) return target
+      if (target === undefined) return source
+      return source > target ? source : target
+    }
+  },
+  min: () => {
+    return (target, source) => {
+      if (source === undefined) return target
+      if (target === undefined) return source
+      return source < target ? source : target
+    }
+  },
+  /**
+   * count the number of merged objects
+   * @returns {Number} count of merged objects
+   */
+  count: () => {
+    const countInfoMap = new Map()
+    return (target, source, key) => {
+      if (!countInfoMap.has(key)) countInfoMap.set(key, { count: 1 }) //initialize countInfo
+      const countInfo = countInfoMap.get(key)
+      countInfo.count += 1
+      return countInfo.count
+    }
+  },
+  /**
+   * count of value merged objects that are not undefined or null
+   * @returns {Number} count of value merged objects that are not undefined or null
+   */
+  countValue: () => {
+    const countInfoMap = new Map()
+    return (target, source, key) => {
+      if (!countInfoMap.has(key)) countInfoMap.set(key, { count: (target != null ? 1 : 0) }) //initialize countInfo
+      const countInfo = countInfoMap.get(key)
+      if (source != null) countInfo.count += 1
+      return countInfo.count
+    }
+  },
+
+  /**
+ * count of unique value merged objects that are not undefined or null
+ * @returns {Number} count of value merged objects that are not undefined or null
+ */
+  countUniqueValue: () => {
+    const countInfoMap = new Map()
+    return (target, source, key) => {
+      if (!countInfoMap.has(key)) countInfoMap.set(key, { count: (target != null ? 1 : 0), valueMap: target != null ? new Map([[target, true]]) : new Map() }) //initialize countInfo
+      const countInfo = countInfoMap.get(key)
+      if (source != null && !countInfo.valueMap.has(source)) {
+        countInfo.valueMap.set(source, true)
+        countInfo.count += 1
+
+      }
+      return countInfo.count
+    }
+  },
+
+  preserve: () => {
+    return (target, source) => {
+      if (source === undefined) return target
+      if (target === undefined) return source
+      if (Array.isArray(target) && Array.isArray(source)) {
+        return [...target, ...source]
+      } else if (Array.isArray(target)) {
+        return [...target, source]
+      } else if (Array.isArray(source)) {
+        return [target, ...source]
+      }
+      return [target, source]
+    }
   }
 }
-const mergeFunctionGenerator = (operations) => {
+const mergeFunctionGenerator = (operations, keys) => {
   if (typeof (operations) === "function") return operations
   if (typeof (operations) === "object") {
-    return (target, source) => {
+    //each merged function will be generated for each key
+    const operationsKeysFunction = Object.fromEntries(Object.keys(operations).map(operationKey => {
+      if (typeof (operations[operationKey]) === "function") return [operationKey, operations[operationKey]]
+      if (basicOperationsGenerator[operations[operationKey]] === undefined) throw Error("operation " + operations[operationKey] + " is not supported")
+      return [operationKey, basicOperationsGenerator[operations[operationKey]]()]
+    }))
+    return (target, source, objectsKey) => {
       if (target === undefined) throw Error("target object cannot be undefined")
       if (source === undefined) return target
       const mergedObject = {}
       //use set to get unique keys from both objects
-      new Set([...(Object.keys(target)), ...(Object.keys(source))]).forEach(key => {
-        if (key in operations) {
-          mergedObject[key] = (typeof (operations[key]) === "function") ? operations[key](target[key], source[key]) : basicOperations[operations[key]](target[key], source[key])
+      new Set([...(Object.keys(target)), ...(Object.keys(source))]).forEach(propertyName => {
+        if (propertyName in operations) {
+          //for operations, pass target[key], source[key] and key to the function
+          mergedObject[propertyName] = (typeof (operations[propertyName]) === "function") ?
+            operations[propertyName](target[propertyName], source[propertyName]) :
+            operationsKeysFunction[propertyName](target[propertyName], source[propertyName], objectsKey)
         } else {
           //replace only if source[key] is not undefined
-          mergedObject[key] = source[key] !== undefined ? source[key] : target[key]
+          mergedObject[propertyName] = source[propertyName] !== undefined ? source[propertyName] : target[propertyName]
         }
       })
       return mergedObject
@@ -69,7 +131,7 @@ function mergeObjectsByKeys(targets, sources, keys, operations) {
   if (!Array.isArray(sources) || sources.length < 1 || typeof (sources[0]) !== "object") throw Error("sources objects must be array of objects")
   if (!Array.isArray(keys) || keys.length < 1 || typeof (keys[0]) !== "string") throw Error("keys must be array of object property name (String)")
   if (operations && typeof (operations) !== "function" && typeof (operations) !== "object") throw Error("operations must be function or object")
-  const mergedFunction = mergeFunctionGenerator(operations)
+  const mergedFunction = mergeFunctionGenerator(operations, keys)
   const keysGenerator = (object) => {
     const freezedKeys = Object.freeze(keys)
     const keysString = Object.keys(object).filter(key => freezedKeys.includes(key))
@@ -81,14 +143,14 @@ function mergeObjectsByKeys(targets, sources, keys, operations) {
     const key = keysGenerator(source)
     if (sourcesMapByKeys.has(key)) {
       //map earlier source with the same key to the latest source sorted by index of array
-      sourcesMapByKeys.set(key, mergedFunction(sourcesMapByKeys.get(key), source))
+      sourcesMapByKeys.set(key, mergedFunction(sourcesMapByKeys.get(key), source, key))
       continue
     }
     sourcesMapByKeys.set(key, source)
   }
   return targets.map(target => {
     const key = keysGenerator(target)
-    return mergedFunction(target, sourcesMapByKeys.get(key))
+    return mergedFunction(target, sourcesMapByKeys.get(key), key)
   })
 }
 

@@ -20,7 +20,7 @@
   "homepage": "https://github.com/songpr/mergeJSObjects#readme",
   "type": "module",
   "scripts": {
-    "test":"node --test"
+    "test": "node --test"
   },
   "devDependencies": {
     "nodemon": "^2.0.19"
