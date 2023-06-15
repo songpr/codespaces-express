@@ -1,7 +1,25 @@
 {
+  "name": "merge-objects",
+  "version": "1.0.0",
+  "description": "merge javascript objects",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/songpr/mergeJSObjects.git"
+  },
+  "keywords": [
+    "nodejs",
+    "microserice",
+    "fastify"
+  ],
+  "author": "Pornchai Rungsirijaratthong",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/songpr/mergeJSObjects/issues"
+  },
+  "homepage": "https://github.com/songpr/mergeJSObjects#readme",
   "type": "module",
   "scripts": {
-    "start": "nodemon index.js",
     "test":"node --test"
   },
   "devDependencies": {
