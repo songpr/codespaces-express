@@ -71,11 +71,11 @@ test("merge multiple source objects to target objects - count score, with some w
 })
 
 
-test("merge multiple source objects to target objects - countValue score, with some without score, or score = null", (t) => {
+test("merge multiple source objects to target objects - countNotNull score, with some without score, or score = null", (t) => {
     const additionSourceObjects = [{ key: 2, score: null, timestamp: "2023-02-11 00:00:00" }, { key: 2, timestamp: "2023-02-09 00:00:00" }, { key: 2, score: 20, timestamp: "2023-02-13 11:00:00" }
         , { key: 3, timestamp: "2023-04-10 00:00:00" }, { key: 4, score: null, timestamp: "2023-02-12 00:00:00" }]
     const mergedObjects = mergeObjectsByKeys(targetObjects,
-        [...sourceObjects, ...additionSourceObjects], ["key"], { score: "countValue" })
+        [...sourceObjects, ...additionSourceObjects], ["key"], { score: "countNotNull" })
     assert.deepEqual(mergedObjects, [{ key: 1, score: 1, timestamp: "2023-01-10 00:00:00" }, { key: 2, score: 4, timestamp: "2023-02-13 11:00:00" }
         , { key: 3, score: 2, timestamp: "2023-04-10 00:00:00" }])
     assert.equal(mergedObjects.length, targetObjects.length)

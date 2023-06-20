@@ -38,7 +38,7 @@ const basicOperationsGenerator = {
    * count of value merged objects that are not undefined or null
    * @returns {Number} count of value merged objects that are not undefined or null
    */
-  countValue: () => {
+  countNotNull: () => {
     const countInfoMap = new Map()
     return (target, source, key) => {
       if (!countInfoMap.has(key)) countInfoMap.set(key, { count: (target != null ? 1 : 0) }) //initialize countInfo
