@@ -153,15 +153,22 @@ function mergeObjectsByKeys(targets, sources, keys, operations) {
   for (const source of sources) {
     const key = keysGenerator(source)
     if (sourcesMapByKeys.has(key)) {
-      //map earlier source with the same key to the latest source sorted by index of array
-      sourcesMapByKeys.set(key, mergedFunction(sourcesMapByKeys.get(key), source, key))
+      //push sourcees with the same key to the array
+      sourcesMapByKeys.get(key).push(source)
       continue
     }
-    sourcesMapByKeys.set(key, source)
+    //keep sourcees with the same key in an array
+    sourcesMapByKeys.set(key, [source])
   }
   return targets.map(target => {
     const key = keysGenerator(target)
-    return mergedFunction(target, sourcesMapByKeys.get(key), key)
+    if (!sourcesMapByKeys.has(key)) return target
+    const sources = sourcesMapByKeys.get(key)
+    for (const source of sources) {
+      //merge source to target
+      target = mergedFunction(target, source, key)
+    }
+    return target
   })
 }
 
