@@ -1,6 +1,3 @@
-function validationForBasicOperations(target, source) {
-  if (source === undefined) return target
-}
 const basicOperationsGenerator = {
   sum: () => {
     return (target, source) => {
@@ -86,7 +83,7 @@ const basicOperationsGenerator = {
     }
   }
 }
-const mergeFunctionGenerator = (operations, keys) => {
+const mergeFunctionGenerator = (operations) => {
   if (typeof (operations) === "function") return operations
   if (typeof (operations) === "object") {
     //each merged function will be generated for each key
@@ -135,6 +132,7 @@ const mergeFunctionGenerator = (operations, keys) => {
  *    "count" - count of merged objects
  *    "countNotNull" - count of merged objects that are not undefined or null
  *    "countUniqueValue" - count of unique value merged objects that are not undefined or null
+ *    "preserve" - preserve of property value of merged objects, if target is array, source will be pushed to target array, if source is array, target will be pushed to source array, if both is array, arrays will be merged
  * @returns {Array<Object>} merged objects - the length of merged objects will always equal to the length of target objects
  */
 function mergeObjectsByKeys(targets, sources, keys, operations) {
