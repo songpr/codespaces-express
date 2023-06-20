@@ -65,7 +65,12 @@ const basicOperationsGenerator = {
       return countInfo.count
     }
   },
-
+  /**
+   * preserve of property value of merged objects, if target is array, source will be pushed to target array
+   * if source is array, target will be pushed to source array
+   * if both is array, arrays will be merged
+   * @returns {Array} array of merged objects
+   */
   preserve: () => {
     return (target, source) => {
       if (source === undefined) return target
@@ -123,7 +128,13 @@ const mergeFunctionGenerator = (operations, keys) => {
  * @param {Function||Object} operations used to determine how to merge objects, if operations is a function, it will be called with (target,source) and return the merged object, 
  *  if operations is an object, it will be used as key -> merge function map, if key is found in operations, the merge function will be called with (target,source) and return the merged value of the key of the object.
  *  if operations is not provided, the source object will be merged into target object using Object.assign(target,source)
- * 
+ *  built-in operations are:
+ *    "sum" - sum the values of the key of the objects
+ *    "max" - get the max value of the key of the objects
+ *    "min" - get the min value of the key of the objects
+ *    "count" - count of merged objects
+ *    "countNotNull" - count of merged objects that are not undefined or null
+ *    "countUniqueValue" - count of unique value merged objects that are not undefined or null
  * @returns {Array<Object>} merged objects - the length of merged objects will always equal to the length of target objects
  */
 function mergeObjectsByKeys(targets, sources, keys, operations) {
