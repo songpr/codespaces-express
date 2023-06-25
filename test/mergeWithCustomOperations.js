@@ -59,7 +59,7 @@ test("merge source objects to target objects with normal merge for products", (t
         { key: 4, score: 2, timestamp: "2023-02-12 00:00:00", products: { product_d: { quality: 10, price: 500 } } }
     ])
 })
-test("merge source objects to target objects with merge products", (t) => {
+test("merge source objects to target objects with custom merge products", (t) => {
     const targetObjects = [
         { key: 1, score: 1, timestamp: "2023-01-10 00:00:00", products: { product_a: { quality: 1, price: 100 } } },
         { key: 2, score: 2, timestamp: "2023-01-10 00:00:00", products: { product_b: { quality: 3, price: 100 } } },
@@ -104,7 +104,7 @@ test("merge source objects to target objects with merge products", (t) => {
     ])
 })
 
-test("merge source objects to target objects with merge products -> sum quality, avg price", (t) => {
+test("merge source objects to target objects with custom merge products -> sum quality, avg price", (t) => {
     //keep data of each test in a separate scope to avoid side effects from other tests
     const targetObjects = [
         { key: 0, score: 1, timestamp: "2023-01-10 00:00:00", products: { product_a: { price: 100 } } },
@@ -176,5 +176,85 @@ test("merge source objects to target objects with merge products -> sum quality,
         //quality of product_a is default to 1 if it is undefined or less than 1
         { key: 3, score: 3, timestamp: "2023-03-10 00:00:00", products: { product_a: { quality: 1, price: 100 }, product_c: { quality: 1, price: 300 } } },
         { key: 4, score: 2, timestamp: "2023-02-12 00:00:00", products: { product_d: { quality: 10, price: 500 } } }
+    ])
+})
+
+test("merge source objects to target objects with custom merge products with data from other property -> sum quality, avg price, score per product", (t) => {
+    //keep data of each test in a separate scope to avoid side effects from other tests
+    const targetObjects = [
+        { key: 0, score: 1, timestamp: "2023-01-10 00:00:00", products: { product_a: { price: 100 } } },
+        { key: 1, score: 1, timestamp: "2023-01-10 00:00:00", products: { product_a: { quality: 1, price: 100 } } },
+        { key: 2, score: 2, timestamp: "2023-01-10 00:00:00", products: { product_b: { quality: 3, price: 100 } } },
+        { key: 3, score: 2, timestamp: "2023-03-10 00:00:00" },
+        { key: 4, score: 4, timestamp: "2023-01-10 00:00:00", products: { product_d: { quality: 10, price: 500 } } }]
+    const sourceObjects = [
+        { key: 2, score: 5, timestamp: "2023-02-10 11:00:00", products: { product_a: { quality: null, price: 100 }, product_b: { quality: 2, price: 200 } } },
+        { key: 2, score: 6, timestamp: "2023-02-10 00:00:00", products: { product_a: { price: 100 }, product_c: { quality: 1, price: 300 } } },
+        { key: 3, score: 3, timestamp: "2023-02-10 00:00:00", products: { product_a: { price: 100 }, product_c: { quality: 1, price: 300 } } },
+        { key: 4, score: 1, timestamp: "2023-02-12 00:00:00" },
+        { key: 5, score: 1, timestamp: "2023-02-12 00:00:00", products: { product_z: { quality: 100, price: 100 } } }]
+    const mergedObjects = mergeObjectsByKeys(targetObjects, sourceObjects, ["key"], {
+        score: "sum",
+        timestamp: "max",
+        products: (targetProperty, sourceProperty, key, target, source) => {
+            //set default quality to 1 if it is undefined or less than 1, return productInfo
+            const setDefaultQuality_ScorePerProducts = (productInfo, score) => {
+                if (productInfo == null) return productInfo
+                if (productInfo.quality < 1 || productInfo.quality == null) productInfo.quality = 1
+                //set default score to score of parent object if it is undefined or null only
+                if (productInfo.score == null && score > 0) productInfo.score = score
+                return productInfo
+            }
+            console.log(targetProperty, sourceProperty, key, target, source)
+            //if both target and source are undefined, return undefined othewise return the one that is not undefined
+            if (targetProperty === undefined) {
+                return sourceProperty === undefined ? undefined : ((sourceProperty, score) => {
+                    for (const [product, productInfo] of Object.entries(sourceProperty))
+                        sourceProperty[product] = setDefaultQuality_ScorePerProducts(productInfo, score)
+                    return sourceProperty
+                })(sourceProperty, source.score)
+            }
+            if (sourceProperty === undefined) {
+                return ((targetProperty, score) => {
+                    for (const [product, productInfo] of Object.entries(targetProperty))
+                        targetProperty[product] = setDefaultQuality_ScorePerProducts(productInfo, score)
+                    return targetProperty
+                })(targetProperty, target.score)
+            }
+            for (const [product, productInfo] of Object.entries(sourceProperty)) {
+                if (targetProperty[product] === undefined) {
+                    targetProperty[product] = setDefaultQuality_ScorePerProducts(productInfo, source.score)
+                } else {
+                    //default quality to 1 if it is undefined or less than 1 for both target and source
+                    targetProperty[product] = setDefaultQuality_ScorePerProducts(targetProperty[product], target.score)
+                    sourceProperty[product] = setDefaultQuality_ScorePerProducts(productInfo, source.score)
+                    //calculate the avg price first before quality is summed
+                    if (productInfo.price !== undefined && targetProperty[product].price !== undefined) {
+                        targetProperty[product].price = (targetProperty[product].price * targetProperty[product].quality + productInfo.price * productInfo.quality) / (targetProperty[product].quality + productInfo.quality)
+                    } else if (productInfo.price !== undefined) {
+                        targetProperty[product].price = productInfo.price
+                    } //ignore both target and source price if both are undefined
+                    //sum the quality
+                    targetProperty[product].quality += productInfo.quality
+                    //calculate score per products
+                    targetProperty[product].score = (targetProperty[product].score === undefined && productInfo.score === undefined) ? undefined :
+                        (targetProperty[product].score ? targetProperty[product].score : 0) + (productInfo.score ? productInfo.score : 0)
+                }
+            }
+            return targetProperty
+            //both target and source are defined
+        }
+
+    })
+    console.log(JSON.stringify(mergedObjects, null, 2))
+    assert.deepEqual(mergedObjects, [
+        { key: 0, score: 1, timestamp: "2023-01-10 00:00:00", products: { product_a: { price: 100 } } }, //the whole target will be not change if source of the same key is undefined
+        { key: 1, score: 1, timestamp: "2023-01-10 00:00:00", products: { product_a: { quality: 1, price: 100 } } }, //the whole target will be not change if source of the same key is undefined
+        //price of product_b in key 2 is 140 => (100*3+200*2)/(3+2)
+        //quality of product is default to 1 if it is undefined or less than 1
+        { key: 2, score: 13, timestamp: "2023-02-10 11:00:00", products: { product_a: { quality: 2, price: 100, score: 11 }, product_b: { quality: 5, price: 140, score: 7 }, product_c: { quality: 1, price: 300, score: 6 } } },
+        //quality of product_a is default to 1 if it is undefined or less than 1
+        { key: 3, score: 5, timestamp: "2023-03-10 00:00:00", products: { product_a: { quality: 1, price: 100, score: 3 }, product_c: { quality: 1, price: 300, score: 3 } } },
+        { key: 4, score: 5, timestamp: "2023-02-12 00:00:00", products: { product_d: { quality: 10, price: 500, score: 4 } } }
     ])
 })
