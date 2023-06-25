@@ -258,3 +258,40 @@ test("merge source objects to target objects with custom merge products with dat
         { key: 4, score: 5, timestamp: "2023-02-12 00:00:00", products: { product_d: { quality: 10, price: 500, score: 4 } } }
     ])
 })
+
+
+test("merge multiple source objects to target objects - with custom merge function but modify target or source object", async (t) => {
+    //keep data of each test in a separate scope to avoid side effects from other tests
+    const targetObjects = [
+        { key: 0, score: 1, timestamp: "2023-01-10 00:00:00", products: { product_a: { price: 100 } } },
+        { key: 1, score: 1, timestamp: "2023-01-10 00:00:00", products: { product_a: { quality: 1, price: 100 } } },
+        { key: 2, score: 2, timestamp: "2023-01-10 00:00:00", products: { product_b: { quality: 3, price: 100 } } },
+        { key: 3, score: 2, timestamp: "2023-03-10 00:00:00" },
+        { key: 4, score: 4, timestamp: "2023-01-10 00:00:00", products: { product_d: { quality: 10, price: 500 } } }]
+    const sourceObjects = [
+        { key: 2, score: 5, timestamp: "2023-02-10 11:00:00", products: { product_a: { quality: null, price: 100 }, product_b: { quality: 2, price: 200 } } },
+        { key: 2, score: 6, timestamp: "2023-02-10 00:00:00", products: { product_a: { price: 100 }, product_c: { quality: 1, price: 300 } } },
+        { key: 3, score: 3, timestamp: "2023-02-10 00:00:00", products: { product_a: { price: 100 }, product_c: { quality: 1, price: 300 } } },
+        { key: 4, score: 1, timestamp: "2023-02-12 00:00:00" },
+        { key: 5, score: 1, timestamp: "2023-02-12 00:00:00", products: { product_z: { quality: 100, price: 100 } } }]
+    await t.test("modify target object must throw error", (test) => {
+        assert.throws(() => {
+            mergeObjectsByKeys(targetObjects,
+                sourceObjects, ["key"], {
+                score: "sum", products: (targetProperty, sourceProperty, key, target, source) => {
+                    target.score = 1000
+                }
+            })
+        }, Error)
+    })
+    await t.test("modify source object must throw error", (test) => {
+        assert.throws(() => {
+            mergeObjectsByKeys(targetObjects,
+                sourceObjects, ["key"], {
+                score: "sum", products: (targetProperty, sourceProperty, key, target, source) => {
+                    source.score = 1000
+                }
+            })
+        }, Error)
+    })
+})

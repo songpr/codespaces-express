@@ -96,13 +96,15 @@ const mergeFunctionGenerator = (operations) => {
       if (target === undefined) throw Error("target object cannot be undefined")
       if (source === undefined) return target
       const mergedObject = {}
-      //use set to get unique keys from both objects
+      //use set to get unique keys from both objects'
+      const freezedTarget = Object.freeze(target)//freeze target to prevent it from being modified by one of operations and create side effects to other operations
+      const freezedSource = Object.freeze(source)//freeze source to prevent it from being modified by one of operations and create side effects to other operations
       new Set([...(Object.keys(target)), ...(Object.keys(source))]).forEach(propertyName => {
         if (propertyName in operations) {
           //for operations, pass target[key], source[key] key, target, source to the function
           mergedObject[propertyName] = (typeof (operations[propertyName]) === "function") ?
-            operations[propertyName](target[propertyName], source[propertyName], objectsKey, target, source) :
-            operationsKeysFunction[propertyName](target[propertyName], source[propertyName], objectsKey, target, source)
+            operations[propertyName](target[propertyName], source[propertyName], objectsKey, freezedTarget, freezedSource) :
+            operationsKeysFunction[propertyName](target[propertyName], source[propertyName], objectsKey, freezedTarget, freezedSource)
         } else {
           //replace only if source[key] is not undefined
           mergedObject[propertyName] = source[propertyName] !== undefined ? source[propertyName] : target[propertyName]
@@ -123,7 +125,8 @@ const mergeFunctionGenerator = (operations) => {
  * @param {Array<Object>} sources - sources objects to be merged into targets
  * @param {Array<String>} keys - keys to use to determine which objects to be merged together, all values of keys must be supported JSON.stringify otherwise, error will be throwed
  * @param {Function||Object} operations used to determine how to merge objects, if operations is a function, it will be called with (target,source) and return the merged object, 
- *  if operations is an object, it will be used as key -> merge function map, if key is found in operations, the merge function will be called with (target,source) and return the merged value of the key of the object.
+ *  if operations is an object, it will be used as key -> merge function map, if key is found in operations, 
+ *         the merge function will be called with (targetProperty,sourceProperty,key,objectsKey,freezedTarget,freezedSource) and return the merged value of the key of the object.
  *  if operations is not provided, the source object will be merged into target object using Object.assign(target,source)
  *  built-in operations are:
  *    "sum" - sum the values of the key of the objects
