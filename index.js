@@ -99,10 +99,10 @@ const mergeFunctionGenerator = (operations) => {
       //use set to get unique keys from both objects
       new Set([...(Object.keys(target)), ...(Object.keys(source))]).forEach(propertyName => {
         if (propertyName in operations) {
-          //for operations, pass target[key], source[key] and key to the function
+          //for operations, pass target[key], source[key] key, target, source to the function
           mergedObject[propertyName] = (typeof (operations[propertyName]) === "function") ?
             operations[propertyName](target[propertyName], source[propertyName]) :
-            operationsKeysFunction[propertyName](target[propertyName], source[propertyName], objectsKey)
+            operationsKeysFunction[propertyName](target[propertyName], source[propertyName], objectsKey, target, source)
         } else {
           //replace only if source[key] is not undefined
           mergedObject[propertyName] = source[propertyName] !== undefined ? source[propertyName] : target[propertyName]

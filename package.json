@@ -1,6 +1,6 @@
 {
   "name": "merge-jsobjects",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "merge javascript objects",
   "main": "index.js",
   "repository": {
@@ -21,8 +21,5 @@
   "type": "module",
   "scripts": {
     "test": "node --test"
-  },
-  "devDependencies": {
-    "nodemon": "^2.0.19"
   }
 }
