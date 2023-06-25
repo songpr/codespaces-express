@@ -101,7 +101,7 @@ const mergeFunctionGenerator = (operations) => {
         if (propertyName in operations) {
           //for operations, pass target[key], source[key] key, target, source to the function
           mergedObject[propertyName] = (typeof (operations[propertyName]) === "function") ?
-            operations[propertyName](target[propertyName], source[propertyName]) :
+            operations[propertyName](target[propertyName], source[propertyName], objectsKey, target, source) :
             operationsKeysFunction[propertyName](target[propertyName], source[propertyName], objectsKey, target, source)
         } else {
           //replace only if source[key] is not undefined
